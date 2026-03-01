@@ -1,0 +1,11 @@
+node_modules
+dist
+.env
+venv
+__pycache__
+*.pyc
+.pytest_cache
+sql_app.db
+.git
+frontend/node_modules
+backend/venv
