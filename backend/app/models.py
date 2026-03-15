@@ -68,3 +68,43 @@ class JobPosting(Base):
     location = Column(String)
     employment_type = Column(String)
     description = Column(Text)
+    from_date = Column(DateTime(timezone=True))
+    to_date = Column(DateTime(timezone=True))
+    source_url = Column(String)
+    
+    created_at = Column(DateTime(timezone=True), default=get_utc_now)
+    updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
+
+    user = relationship("User", back_populates="jobs")
+    applications = relationship("Application", back_populates="job", cascade="all, delete-orphan")
+    drafts = relationship("Draft", back_populates="job", cascade="all, delete-orphan")
+
+class Application(Base):
+    __tablename__ = "applications"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id"), index=True, nullable=False)
+    job_id = Column(String, ForeignKey("job_postings.id"), index=True, nullable=False)
+    application_date = Column(DateTime(timezone=True), default=get_utc_now, index=True)
+    current_status = Column(SQLEnum(ApplicationStatus), default=ApplicationStatus.Applied, index=True)
+    notes = Column(Text)
+    
+    created_at = Column(DateTime(timezone=True), default=get_utc_now)
+    updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
+
+    user = relationship("User", back_populates="applications")
+    job = relationship("JobPosting", back_populates="applications")
+    status_history = relationship("ApplicationStatusHistory", back_populates="application", cascade="all, delete-orphan")
+    drafts = relationship("Draft", back_populates="application", cascade="all, delete-orphan")
+    nudges = relationship("Nudge", back_populates="application", cascade="all, delete-orphan")
+
+class ApplicationStatusHistory(Base):
+    __tablename__ = "application_status_history"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    application_id = Column(String, ForeignKey("applications.id"), index=True, nullable=False)
+    old_status = Column(SQLEnum(ApplicationStatus))
+    new_status = Column(SQLEnum(ApplicationStatus), nullable=False)
+    changed_at = Column(DateTime(timezone=True), default=get_utc_now)
+    note = Column(Text)
+
