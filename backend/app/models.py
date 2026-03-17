@@ -108,3 +108,56 @@ class ApplicationStatusHistory(Base):
     changed_at = Column(DateTime(timezone=True), default=get_utc_now)
     note = Column(Text)
 
+    application = relationship("Application", back_populates="status_history")
+
+class Draft(Base):
+    __tablename__ = "drafts"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    application_id = Column(String, ForeignKey("applications.id"), index=True, nullable=True)
+    job_id = Column(String, ForeignKey("job_postings.id"), index=True, nullable=True)
+    user_id = Column(String, ForeignKey("users.id"), index=True, nullable=False)
+    
+    type = Column(SQLEnum(DraftType), nullable=False, index=True)
+    contents = Column(Text, nullable=False)
+    status = Column(SQLEnum(DraftStatus), default=DraftStatus.draft)
+    
+    created_at = Column(DateTime(timezone=True), default=get_utc_now)
+    updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
+
+    user = relationship("User", back_populates="drafts")
+    job = relationship("JobPosting", back_populates="drafts")
+    application = relationship("Application", back_populates="drafts")
+
+class Nudge(Base):
+    __tablename__ = "nudges"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    application_id = Column(String, ForeignKey("applications.id"), index=True, nullable=False)
+    user_id = Column(String, ForeignKey("users.id"), index=True, nullable=False)
+    
+    scheduled_for = Column(DateTime(timezone=True), index=True, nullable=False)
+    type = Column(String, nullable=False) # e.g. "follow_up_email_reminder"
+    message = Column(Text)
+    status = Column(String, default="pending") # pending, completed, cancelled
+    
+    created_at = Column(DateTime(timezone=True), default=get_utc_now)
+
+    user = relationship("User", back_populates="nudges")
+    application = relationship("Application", back_populates="nudges")
+
+class ImportJob(Base):
+    __tablename__ = "import_jobs"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id"), index=True, nullable=False)
+    filename = Column(String, nullable=False)
+    status = Column(String, default="processing") # processing, completed, failed
+    records_processed = Column(Integer, default=0)
+    records_failed = Column(Integer, default=0)
+    error_summary = Column(Text)
+    
+    created_at = Column(DateTime(timezone=True), default=get_utc_now)
+    completed_at = Column(DateTime(timezone=True))
+
+    user = relationship("User", back_populates="import_jobs")
