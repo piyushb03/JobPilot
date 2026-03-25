@@ -73,3 +73,48 @@ class ApplicationCreate(ApplicationBase):
     pass
 
 class ApplicationResponse(ApplicationBase):
+    id: str
+    user_id: str
+    created_at: datetime
+    updated_at: datetime
+    job: JobPostingResponse
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class ApplicationStatusHistoryResponse(BaseModel):
+    id: str
+    application_id: str
+    old_status: Optional[ApplicationStatus]
+    new_status: ApplicationStatus
+    changed_at: datetime
+    note: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+class ApplicationStatusUpdate(BaseModel):
+    status: ApplicationStatus
+    note: Optional[str] = None
+
+# --- Draft Schemas ---
+class DraftBase(BaseModel):
+    type: DraftType
+    contents: str
+    status: DraftStatus = DraftStatus.draft
+
+class DraftCreate(DraftBase):
+    application_id: Optional[str] = None
+    job_id: Optional[str] = None
+
+class DraftResponse(DraftBase):
+    id: str
+    application_id: Optional[str] = None
+    job_id: Optional[str] = None
+    user_id: str
+    created_at: datetime
+    updated_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+# --- Nudge Schemas ---
+class NudgeBase(BaseModel):
+    scheduled_for: datetime
