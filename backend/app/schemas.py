@@ -33,3 +33,43 @@ class UserLogin(BaseModel):
     password: str
 
 class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    email: Optional[str] = None
+
+# --- Job Posting Schemas ---
+class JobPostingBase(BaseModel):
+    company: str
+    role: str
+    location: Optional[str] = None
+    employment_type: Optional[str] = None
+    description: Optional[str] = None
+    from_date: Optional[datetime] = None
+    to_date: Optional[datetime] = None
+    source_url: Optional[str] = None
+    external_id: Optional[str] = None
+
+class JobPostingCreate(JobPostingBase):
+    pass
+
+class JobPostingResponse(JobPostingBase):
+    id: str
+    user_id: str
+    created_at: datetime
+    updated_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+# --- Application Schemas ---
+class ApplicationBase(BaseModel):
+    job_id: str
+    application_date: Optional[datetime] = None
+    current_status: ApplicationStatus = ApplicationStatus.Applied
+    notes: Optional[str] = None
+
+class ApplicationCreate(ApplicationBase):
+    pass
+
+class ApplicationResponse(ApplicationBase):
