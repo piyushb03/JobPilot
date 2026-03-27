@@ -118,3 +118,31 @@ class DraftResponse(DraftBase):
 # --- Nudge Schemas ---
 class NudgeBase(BaseModel):
     scheduled_for: datetime
+    type: str
+    message: Optional[str] = None
+    status: str = "pending"
+
+class NudgeCreate(NudgeBase):
+    application_id: str
+
+class NudgeResponse(NudgeBase):
+    id: str
+    application_id: str
+    user_id: str
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+# --- ImportJob Schemas ---
+class ImportJobResponse(BaseModel):
+    id: str
+    user_id: str
+    filename: str
+    status: str
+    records_processed: int
+    records_failed: int
+    error_summary: Optional[str] = None
+    created_at: datetime
+    completed_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
