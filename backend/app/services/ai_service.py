@@ -33,3 +33,48 @@ def _build_candidate_context(user: User) -> str:
 def _build_job_context(job: JobPosting) -> str:
     return f"Role: {job.role}\nCompany: {job.company}\nDescription: {job.description or 'N/A'}"
 
+def generate_cover_letter(db: Session, user: User, application: Application) -> str:
+    job = application.job
+    candidate_ctx = _build_candidate_context(user)
+    job_ctx = _build_job_context(job)
+    
+    # Get past cover letters for context (to match style, avoiding blind copying)
+    past_drafts = db.query(Draft).filter(Draft.user_id == user.id, Draft.type == DraftType.cover_letter).limit(2).all()
+    past_ctx = ""
+    if past_drafts:
+        past_ctx = "\nHere are examples of my past cover letters for style reference ONLY (do not copy facts from them):\n"
+        for d in past_drafts:
+            past_ctx += f"---\n{d.contents}\n"
+
+    prompt = f"""
+    You are an expert career coach writing a highly tailored cover letter.
+    
+    Candidate Profile (Use only these facts, do NOT invent experience, employers, degrees, or certifications):
+    {candidate_ctx}
+    
+    Job Description:
+    {job_ctx}
+    {past_ctx}
+    
+    Instructions:
+    - Write a professional, concise cover letter tailored to the job description.
+    - Highlight how the candidate's specific skills and experience match the role.
+    - Do not include placeholder text like [Company Name], infer it from the context if possible, or omit it.
+    - Keep it under 400 words.
+    - DO NOT hallucinate or invent any qualifications or experience not explicitly listed in the Candidate Profile.
+    """
+    
+    if USE_MOCK_AI:
+        return f"Dear Hiring Manager at {job.company},\n\nI am writing to express my strong interest in the {job.role} position. Based on my background...\n\n[MOCK AI GENERATED CONTENT]"
+    
+    try:
+        response = model.generate_content(prompt)
+        return response.text.strip()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI generation failed: {str(e)}")
+
+def generate_follow_up(db: Session, user: User, application: Application) -> str:
+    job = application.job
+    days_since = (Application.application_date - application.application_date).days # Mock diff
+    # We should calculate real days since application
+    from datetime import datetime, timezone
