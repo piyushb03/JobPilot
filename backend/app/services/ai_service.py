@@ -78,3 +78,28 @@ def generate_follow_up(db: Session, user: User, application: Application) -> str
     days_since = (Application.application_date - application.application_date).days # Mock diff
     # We should calculate real days since application
     from datetime import datetime, timezone
+    days_since = (datetime.now(timezone.utc) - application.application_date).days
+    
+    prompt = f"""
+    You are an expert career coach writing a polite follow-up email for a job application.
+    
+    Candidate Name: {user.name}
+    Role: {job.role}
+    Company: {job.company}
+    Days since applied: {days_since}
+    Current Status: {application.current_status}
+    
+    Instructions:
+    - Write a short, professional follow-up email to check on the application status.
+    - Be polite and concise.
+    - Do not invent any additional facts.
+    """
+    
+    if USE_MOCK_AI:
+        return f"Hi Hiring Team at {job.company},\n\nI'm following up on my application for the {job.role} position submitted {days_since} days ago. I remain very interested...\n\n[MOCK AI GENERATED CONTENT]"
+        
+    try:
+        response = model.generate_content(prompt)
+        return response.text.strip()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI generation failed: {str(e)}")
