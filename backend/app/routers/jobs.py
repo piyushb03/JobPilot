@@ -16,3 +16,17 @@ def create_job(job: schemas.JobPostingCreate, db: Session = Depends(deps.get_db)
     db.add(db_job)
     db.commit()
     db.refresh(db_job)
+    return db_job
+
+@router.get("/{job_id}", response_model=schemas.JobPostingResponse)
+def read_job(job_id: str, db: Session = Depends(deps.get_db), current_user: models.User = Depends(deps.get_current_user)):
+    job = db.query(models.JobPosting).filter(models.JobPosting.id == job_id, models.JobPosting.user_id == current_user.id).first()
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return job
+
+@router.put("/{job_id}", response_model=schemas.JobPostingResponse)
+def update_job(job_id: str, job_update: schemas.JobPostingCreate, db: Session = Depends(deps.get_db), current_user: models.User = Depends(deps.get_current_user)):
+    db_job = db.query(models.JobPosting).filter(models.JobPosting.id == job_id, models.JobPosting.user_id == current_user.id).first()
+    if db_job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
