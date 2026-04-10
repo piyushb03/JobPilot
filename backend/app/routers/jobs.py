@@ -30,3 +30,20 @@ def update_job(job_id: str, job_update: schemas.JobPostingCreate, db: Session = 
     db_job = db.query(models.JobPosting).filter(models.JobPosting.id == job_id, models.JobPosting.user_id == current_user.id).first()
     if db_job is None:
         raise HTTPException(status_code=404, detail="Job not found")
+    
+    for key, value in job_update.model_dump(exclude_unset=True).items():
+        setattr(db_job, key, value)
+    
+    db.commit()
+    db.refresh(db_job)
+    return db_job
+
+@router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_job(job_id: str, db: Session = Depends(deps.get_db), current_user: models.User = Depends(deps.get_current_user)):
+    db_job = db.query(models.JobPosting).filter(models.JobPosting.id == job_id, models.JobPosting.user_id == current_user.id).first()
+    if db_job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    db.delete(db_job)
+    db.commit()
+    return None
