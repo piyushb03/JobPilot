@@ -33,3 +33,33 @@ def create_application(app: schemas.ApplicationCreate, db: Session = Depends(dep
     db.commit()
     
     return db_app
+
+@router.get("/{app_id}", response_model=schemas.ApplicationResponse)
+def read_application(app_id: str, db: Session = Depends(deps.get_db), current_user: models.User = Depends(deps.get_current_user)):
+    app = db.query(models.Application).filter(models.Application.id == app_id, models.Application.user_id == current_user.id).first()
+    if app is None:
+        raise HTTPException(status_code=404, detail="Application not found")
+    return app
+
+@router.delete("/{app_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_application(app_id: str, db: Session = Depends(deps.get_db), current_user: models.User = Depends(deps.get_current_user)):
+    app = db.query(models.Application).filter(models.Application.id == app_id, models.Application.user_id == current_user.id).first()
+    if app is None:
+        raise HTTPException(status_code=404, detail="Application not found")
+    
+    db.delete(app)
+    db.commit()
+    return None
+
+@router.post("/{app_id}/status", response_model=schemas.ApplicationStatusHistoryResponse)
+def update_status(app_id: str, status_update: schemas.ApplicationStatusUpdate, db: Session = Depends(deps.get_db), current_user: models.User = Depends(deps.get_current_user)):
+    app = db.query(models.Application).filter(models.Application.id == app_id, models.Application.user_id == current_user.id).first()
+    if app is None:
+        raise HTTPException(status_code=404, detail="Application not found")
+    
+    old_status = app.current_status
+    app.current_status = status_update.status
+    
+    history = models.ApplicationStatusHistory(
+        application_id=app.id,
+        old_status=old_status,
