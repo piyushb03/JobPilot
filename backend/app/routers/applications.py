@@ -63,3 +63,30 @@ def update_status(app_id: str, status_update: schemas.ApplicationStatusUpdate, d
     history = models.ApplicationStatusHistory(
         application_id=app.id,
         old_status=old_status,
+        new_status=status_update.status,
+        note=status_update.note
+    )
+    db.add(history)
+    db.commit()
+    db.refresh(history)
+    
+    # Nudge logic (removing old nudges if moving past applied, etc) could be triggered here
+    return history
+
+@router.get("/{app_id}/history", response_model=List[schemas.ApplicationStatusHistoryResponse])
+def read_application_history(app_id: str, db: Session = Depends(deps.get_db), current_user: models.User = Depends(deps.get_current_user)):
+    app = db.query(models.Application).filter(models.Application.id == app_id, models.Application.user_id == current_user.id).first()
+    if app is None:
+        raise HTTPException(status_code=404, detail="Application not found")
+    
+    history = db.query(models.ApplicationStatusHistory).filter(models.ApplicationStatusHistory.application_id == app_id).order_by(models.ApplicationStatusHistory.changed_at.desc()).all()
+    return history
+
+@router.get("/{app_id}/drafts", response_model=List[schemas.DraftResponse])
+def read_application_drafts(app_id: str, db: Session = Depends(deps.get_db), current_user: models.User = Depends(deps.get_current_user)):
+    app = db.query(models.Application).filter(models.Application.id == app_id, models.Application.user_id == current_user.id).first()
+    if app is None:
+        raise HTTPException(status_code=404, detail="Application not found")
+        
+    drafts = db.query(models.Draft).filter(models.Draft.application_id == app_id).order_by(models.Draft.created_at.desc()).all()
+    return drafts
