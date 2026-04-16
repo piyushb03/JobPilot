@@ -23,3 +23,33 @@ def generate_cover_letter_endpoint(app_id: str, db: Session = Depends(deps.get_d
     draft = models.Draft(
         application_id=app.id,
         job_id=app.job_id,
+        user_id=current_user.id,
+        type=models.DraftType.cover_letter,
+        contents=generated_text,
+        status=models.DraftStatus.draft
+    )
+    db.add(draft)
+    db.commit()
+    db.refresh(draft)
+    return draft
+
+@router.post("/generate-follow-up", response_model=schemas.DraftResponse)
+def generate_follow_up_endpoint(app_id: str, db: Session = Depends(deps.get_db), current_user: models.User = Depends(deps.get_current_user)):
+    app = db.query(models.Application).filter(models.Application.id == app_id, models.Application.user_id == current_user.id).first()
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found")
+        
+    generated_text = ai_service.generate_follow_up(db, current_user, app)
+    
+    draft = models.Draft(
+        application_id=app.id,
+        job_id=app.job_id,
+        user_id=current_user.id,
+        type=models.DraftType.follow_up_email,
+        contents=generated_text,
+        status=models.DraftStatus.draft
+    )
+    db.add(draft)
+    db.commit()
+    db.refresh(draft)
+    return draft
