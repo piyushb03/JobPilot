@@ -38,3 +38,33 @@ export function Dashboard() {
         <h2 className="text-lg font-medium text-gray-900 mb-4">Recent Applications</h2>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
+            <thead>
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {apps.slice(0, 5).map(app => (
+                <tr key={app.id}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{app.job.company}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.job.role}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                      ${app.current_status === 'Applied' ? 'bg-yellow-100 text-yellow-800' : ''}
+                      ${app.current_status === 'Interview' ? 'bg-purple-100 text-purple-800' : ''}
+                      ${app.current_status === 'Offer' ? 'bg-green-100 text-green-800' : ''}
+                      ${app.current_status === 'Reject' ? 'bg-red-100 text-red-800' : ''}
+                      ${app.current_status === 'Withdrawn' ? 'bg-gray-100 text-gray-800' : ''}
+                    `}>
+                      {app.current_status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {new Date(app.application_date).toLocaleDateString()}
+                  </td>
+                </tr>
+              ))}
+              {apps.length === 0 && (
