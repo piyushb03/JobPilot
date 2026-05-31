@@ -198,3 +198,66 @@ export function ApplicationDetail() {
                 onClick={() => generateDraft('cover-letter')}
                 disabled={isGenerating}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50"
+              >
+                {isGenerating ? <RefreshCw className="animate-spin h-5 w-5 mr-2" /> : <FileText className="h-5 w-5 mr-2" />}
+                Generate Cover Letter
+              </button>
+              <button 
+                onClick={() => generateDraft('follow-up')}
+                disabled={isGenerating}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+              >
+                {isGenerating ? <RefreshCw className="animate-spin h-5 w-5 mr-2 text-gray-400" /> : <Mail className="h-5 w-5 mr-2 text-gray-400" />}
+                Draft Follow-up Email
+              </button>
+            </div>
+
+            {activeDraft && (
+              <div className="border border-purple-200 rounded-md p-4 bg-purple-50">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium text-purple-800 capitalize">{activeDraft.type.replace('_', ' ')} (Generated)</span>
+                  <button className="text-sm text-purple-600 hover:text-purple-800 font-medium">Save Changes</button>
+                </div>
+                <textarea 
+                  className="w-full h-64 p-3 border border-purple-100 rounded-md shadow-inner text-sm font-sans focus:ring-purple-500 focus:border-purple-500"
+                  value={activeDraft.contents}
+                  onChange={(e) => setActiveDraft({...activeDraft, contents: e.target.value})}
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white shadow sm:rounded-lg p-6">
+            <h4 className="text-md font-medium text-gray-900 mb-4">Saved Drafts</h4>
+            {drafts.length === 0 ? (
+              <p className="text-sm text-gray-500">No drafts saved for this application.</p>
+            ) : (
+              <ul className="space-y-4">
+                {drafts.map(draft => (
+                  <li key={draft.id} className="border border-gray-200 rounded-md p-4 flex flex-col">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-medium text-gray-900 capitalize flex items-center">
+                        {draft.type === 'cover_letter' ? <FileText className="h-4 w-4 mr-1 text-gray-400" /> : <Mail className="h-4 w-4 mr-1 text-gray-400"/>}
+                        {draft.type.replace('_', ' ')}
+                      </span>
+                      <span className="text-xs text-gray-500">{new Date(draft.created_at).toLocaleString()}</span>
+                    </div>
+                    <div className="text-sm text-gray-600 line-clamp-3 bg-gray-50 p-2 rounded">{draft.contents}</div>
+                    <div className="mt-3 flex justify-end">
+                      <button 
+                        onClick={() => setActiveDraft(draft)}
+                        className="text-sm text-blue-600 hover:text-blue-500 font-medium"
+                      >
+                        Edit Draft
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
