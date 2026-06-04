@@ -48,3 +48,58 @@ export function Nudges() {
             pendingNudges.map(nudge => (
               <li key={nudge.id} className="p-4 sm:px-6">
                 <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900">{nudge.message}</p>
+                    <p className="mt-1 text-xs text-gray-500 flex items-center">
+                      <Clock className="h-3 w-3 mr-1" />
+                      Scheduled for {new Date(nudge.scheduled_for).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="ml-4 flex-shrink-0 flex space-x-2">
+                    <Link 
+                      to={`/applications/${nudge.application_id}`}
+                      className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+                    >
+                      View App
+                    </Link>
+                    <button
+                      onClick={() => completeMutation.mutate(nudge.id)}
+                      disabled={completeMutation.isPending}
+                      className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-green-600 hover:bg-green-700"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-1" /> Mark Done
+                    </button>
+                  </div>
+                </div>
+              </li>
+            ))
+          )}
+        </ul>
+      </div>
+
+      {/* Completed Nudges */}
+      <div className="bg-white shadow sm:rounded-lg">
+        <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+          <h3 className="text-lg leading-6 font-medium text-gray-900 flex items-center">
+            <CheckCircle className="h-5 w-5 mr-2 text-green-500" /> Completed
+          </h3>
+        </div>
+        <ul className="divide-y divide-gray-200">
+          {completedNudges.map(nudge => (
+            <li key={nudge.id} className="p-4 sm:px-6 opacity-60">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900 line-through">{nudge.message}</p>
+                  <p className="mt-1 text-xs text-gray-500">Completed</p>
+                </div>
+              </div>
+            </li>
+          ))}
+          {completedNudges.length === 0 && (
+            <li className="px-4 py-8 text-center text-sm text-gray-500">No completed nudges yet.</li>
+          )}
+        </ul>
+      </div>
+    </div>
+  );
+}
