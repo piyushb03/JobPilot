@@ -1,12 +1,226 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { apiClient } from '../api/client';
-import { JobPosting } from '../types';
-import { Plus, Building, MapPin, Briefcase } from 'lucide-react';
+import type { JobPosting } from '../types';
+import {
+  Plus,
+  Building2,
+  MapPin,
+  Briefcase,
+  ExternalLink,
+  X,
+  Search,
+  FileText,
+} from 'lucide-react';
+
+function JobCardSkeleton() {
+  return (
+    <div className="card p-5">
+      <div className="skeleton h-5 w-3/4 mb-2" />
+      <div className="skeleton h-4 w-1/2 mb-4" />
+      <div className="skeleton h-3 w-1/3 mb-2" />
+      <div className="skeleton h-3 w-1/4" />
+    </div>
+  );
+}
+
+interface JobModalProps {
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+function AddJobModal({ onClose, onSuccess }: JobModalProps) {
+  const [formData, setFormData] = useState({
+    company: '',
+    role: '',
+    location: '',
+    employment_type: 'Full-time',
+    description: '',
+    source_url: '',
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await apiClient.post('/api/jobs', formData);
+      toast.success('Job added successfully!');
+      onSuccess();
+      onClose();
+    } catch {
+      toast.error('Failed to add job. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+    setFormData((prev) => ({ ...prev, [field]: e.target.value }));
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <h2 className="section-title">Add Job Posting</h2>
+          <button onClick={onClose} className="btn btn-ghost p-1.5 rounded-lg">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="input-group">
+              <label className="input-label">Company <span className="text-red-500">*</span></label>
+              <input className="input" type="text" required value={formData.company} onChange={set('company')} placeholder="e.g. Google" />
+            </div>
+            <div className="input-group">
+              <label className="input-label">Role <span className="text-red-500">*</span></label>
+              <input className="input" type="text" required value={formData.role} onChange={set('role')} placeholder="e.g. Software Engineer" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="input-group">
+              <label className="input-label">Location</label>
+              <input className="input" type="text" value={formData.location} onChange={set('location')} placeholder="e.g. Remote, New York" />
+            </div>
+            <div className="input-group">
+              <label className="input-label">Employment Type</label>
+              <select className="input" value={formData.employment_type} onChange={set('employment_type')}>
+                <option>Full-time</option>
+                <option>Part-time</option>
+                <option>Contract</option>
+                <option>Internship</option>
+                <option>Freelance</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="input-group">
+            <label className="input-label">Job Posting URL</label>
+            <input className="input" type="url" value={formData.source_url} onChange={set('source_url')} placeholder="https://..." />
+          </div>
+
+          <div className="input-group">
+            <label className="input-label">Job Description</label>
+            <textarea
+              className="input"
+              rows={5}
+              value={formData.description}
+              onChange={set('description')}
+              placeholder="Paste the job description here — the AI will use it to generate tailored cover letters..."
+            />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose} className="btn btn-secondary flex-1">
+              Cancel
+            </button>
+            <button type="submit" disabled={isSubmitting} className="btn btn-primary flex-1">
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Add Job'
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+interface ApplyModalProps {
+  job: JobPosting;
+  onClose: () => void;
+  onSuccess: (appId: string) => void;
+}
+
+function ApplyModal({ job, onClose, onSuccess }: ApplyModalProps) {
+  const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleApply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const res = await apiClient.post('/api/applications', {
+        job_id: job.id,
+        notes: notes || undefined,
+      });
+      toast.success(`Application to ${job.company} created!`);
+      onSuccess(res.data.id);
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail || 'Failed to create application.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-panel max-w-sm" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <h2 className="section-title">Apply to {job.company}</h2>
+          <button onClick={onClose} className="btn btn-ghost p-1.5 rounded-lg">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <form onSubmit={handleApply} className="px-6 py-5 space-y-4">
+          <div className="bg-slate-50 rounded-xl p-4">
+            <p className="font-semibold text-slate-900 text-sm">{job.role}</p>
+            <p className="text-slate-500 text-sm">{job.company} · {job.location || 'Remote'}</p>
+          </div>
+
+          <div className="input-group">
+            <label className="input-label">Notes (optional)</label>
+            <textarea
+              className="input"
+              rows={3}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Where did you find this job? Any initial thoughts..."
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <button type="button" onClick={onClose} className="btn btn-secondary flex-1">
+              Cancel
+            </button>
+            <button type="submit" disabled={isSubmitting} className="btn btn-primary flex-1">
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Applying...
+                </>
+              ) : (
+                <>
+                  <FileText className="w-4 h-4" />
+                  Track Application
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 export function Jobs() {
-  const [showModal, setShowModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [applyTarget, setApplyTarget] = useState<JobPosting | null>(null);
+  const [search, setSearch] = useState('');
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: jobs = [], isLoading } = useQuery<JobPosting[]>({
     queryKey: ['jobs'],
@@ -16,117 +230,159 @@ export function Jobs() {
     },
   });
 
-  const [formData, setFormData] = useState({
-    company: '',
-    role: '',
-    location: '',
-    employment_type: '',
-    description: ''
-  });
-
-  const createMutation = useMutation({
-    mutationFn: async (newJob: any) => {
-      await apiClient.post('/api/jobs', newJob);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      setShowModal(false);
-      setFormData({ company: '', role: '', location: '', employment_type: '', description: '' });
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    createMutation.mutate(formData);
-  };
-
-  if (isLoading) return <div className="p-8">Loading jobs...</div>;
+  const filtered = jobs.filter(
+    (j) =>
+      j.company.toLowerCase().includes(search.toLowerCase()) ||
+      j.role.toLowerCase().includes(search.toLowerCase()) ||
+      (j.location || '').toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Jobs</h1>
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="page-title flex items-center gap-2">
+            <Briefcase className="w-6 h-6 text-blue-600" />
+            Jobs
+          </h1>
+          <p className="text-sm text-slate-500 mt-0.5">{jobs.length} job{jobs.length !== 1 ? 's' : ''} saved</p>
+        </div>
         <button
-          onClick={() => setShowModal(true)}
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none"
+          id="add-job-btn"
+          onClick={() => setShowAddModal(true)}
+          className="btn btn-primary"
         >
-          <Plus className="-ml-1 mr-2 h-5 w-5" />
+          <Plus className="w-4 h-4" />
           Add Job
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {jobs.map((job) => (
-          <div key={job.id} className="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200">
-            <div className="p-5">
-              <h3 className="text-lg font-medium text-gray-900 truncate">{job.role}</h3>
-              <div className="mt-1 flex items-center text-sm text-gray-500">
-                <Building className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
-                {job.company}
-              </div>
-              <div className="mt-1 flex items-center text-sm text-gray-500">
-                <MapPin className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
-                {job.location || 'Remote'}
-              </div>
-              <div className="mt-1 flex items-center text-sm text-gray-500">
-                <Briefcase className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
-                {job.employment_type || 'Full-time'}
-              </div>
-            </div>
-            <div className="bg-gray-50 px-5 py-3 border-t border-gray-200">
-              <button
-                className="text-sm font-medium text-blue-600 hover:text-blue-500"
-                onClick={() => {
-                  // In a real app, this would open a modal to create an application for this job
-                  alert("Create application for " + job.company);
-                }}
-              >
-                Apply
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {showModal && (
-        <div className="fixed inset-0 z-10 overflow-y-auto">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowModal(false)}></div>
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <form onSubmit={handleSubmit}>
-                <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                  <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Add Job</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Company</label>
-                      <input type="text" required value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Role</label>
-                      <input type="text" required value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Location</label>
-                      <input type="text" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Description</label>
-                      <textarea rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                  <button type="submit" className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
-                    Save
-                  </button>
-                  <button type="button" onClick={() => setShowModal(false)} className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
+      {/* Search */}
+      {jobs.length > 0 && (
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            className="input pl-9"
+            type="text"
+            placeholder="Search jobs..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
+      )}
+
+      {/* Job Cards */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => <JobCardSkeleton key={i} />)}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="card flex flex-col items-center justify-center py-20 px-6 text-center">
+          <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+            <Briefcase className="w-7 h-7 text-blue-400" />
+          </div>
+          {search ? (
+            <>
+              <p className="text-slate-700 font-medium mb-1">No jobs match "{search}"</p>
+              <button className="text-sm text-blue-600 hover:text-blue-700 font-medium" onClick={() => setSearch('')}>Clear search</button>
+            </>
+          ) : (
+            <>
+              <p className="text-slate-700 font-medium mb-1">No jobs added yet</p>
+              <p className="text-slate-400 text-sm mb-5">Add job postings to start tracking your applications</p>
+              <button onClick={() => setShowAddModal(true)} className="btn btn-primary">
+                <Plus className="w-4 h-4" />
+                Add your first job
+              </button>
+            </>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map((job) => (
+            <div key={job.id} className="card flex flex-col group hover:-translate-y-0.5 transition-all duration-200">
+              <div className="p-5 flex-1">
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white text-sm font-bold flex-shrink-0 shadow-sm">
+                    {job.company[0].toUpperCase()}
+                  </div>
+                  {job.source_url && (
+                    <a
+                      href={job.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-slate-400 hover:text-blue-600 transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                      title="View original posting"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  )}
+                </div>
+
+                <h3 className="font-semibold text-slate-900 leading-snug mb-1 group-hover:text-blue-700 transition-colors">
+                  {job.role}
+                </h3>
+                <p className="text-sm font-medium text-slate-600 mb-3">{job.company}</p>
+
+                <div className="space-y-1.5">
+                  {job.location && (
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                      <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                      {job.location}
+                    </div>
+                  )}
+                  {job.employment_type && (
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                      <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
+                      {job.employment_type}
+                    </div>
+                  )}
+                </div>
+
+                {job.description && (
+                  <p className="mt-3 text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                    {job.description}
+                  </p>
+                )}
+              </div>
+
+              <div className="border-t border-slate-100 px-5 py-3 flex items-center justify-between">
+                <button
+                  id={`apply-btn-${job.id}`}
+                  onClick={() => setApplyTarget(job)}
+                  className="btn btn-primary btn-sm"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  Track Application
+                </button>
+                <span className="text-xs text-slate-400">
+                  {new Date(job.created_at).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showAddModal && (
+        <AddJobModal
+          onClose={() => setShowAddModal(false)}
+          onSuccess={() => queryClient.invalidateQueries({ queryKey: ['jobs'] })}
+        />
+      )}
+
+      {applyTarget && (
+        <ApplyModal
+          job={applyTarget}
+          onClose={() => setApplyTarget(null)}
+          onSuccess={(appId) => {
+            queryClient.invalidateQueries({ queryKey: ['applications'] });
+            setApplyTarget(null);
+            navigate(`/applications/${appId}`);
+          }}
+        />
       )}
     </div>
   );

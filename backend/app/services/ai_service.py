@@ -1,105 +1,185 @@
 import os
-import vertexai
-from vertexai.generative_models import GenerativeModel, Part
 from fastapi import HTTPException
 from ..models import User, JobPosting, Application, Draft, DraftType
 from sqlalchemy.orm import Session
 
-# Initialize Vertex AI
-# Note: For local dev without credentials, we provide a fallback mock.
-PROJECT_ID = os.getenv("GCP_PROJECT", "mock-project-id")
+# Configuration
+PROJECT_ID = os.getenv("GCP_PROJECT", "")
 LOCATION = os.getenv("GCP_LOCATION", "us-central1")
-
-# Check if we should use the mock (e.g. if we don't have real GCP credentials)
 USE_MOCK_AI = os.getenv("USE_MOCK_AI", "true").lower() == "true"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+
+# Determine which provider to use
+_provider = "mock"
 
 if not USE_MOCK_AI:
-    try:
-        vertexai.init(project=PROJECT_ID, location=LOCATION)
-        model = GenerativeModel("gemini-1.5-flash")
-    except Exception as e:
-        print(f"Failed to initialize Vertex AI: {e}")
-        USE_MOCK_AI = True
+    if GEMINI_API_KEY:
+        # Use google-genai SDK with API key (no GCP auth required)
+        try:
+            import google.generativeai as genai  # type: ignore
+            genai.configure(api_key=GEMINI_API_KEY)
+            _genai_model = genai.GenerativeModel("gemini-1.5-flash")
+            _provider = "genai"
+            print("AI provider: google-genai SDK (API key)")
+        except ImportError:
+            print("google-generativeai not installed, falling back to mock AI.")
+        except Exception as e:
+            print(f"Failed to init google-genai: {e}, falling back to mock AI.")
+    elif PROJECT_ID:
+        # Use Vertex AI (requires GCP credentials)
+        try:
+            import vertexai  # type: ignore
+            from vertexai.generative_models import GenerativeModel  # type: ignore
+            vertexai.init(project=PROJECT_ID, location=LOCATION)
+            _vertex_model = GenerativeModel("gemini-1.5-flash")
+            _provider = "vertex"
+            print(f"AI provider: Vertex AI (project={PROJECT_ID})")
+        except Exception as e:
+            print(f"Failed to initialize Vertex AI: {e}, falling back to mock AI.")
+    else:
+        print("No AI credentials configured (GEMINI_API_KEY or GCP_PROJECT). Running with mock AI.")
+
+
+def get_ai_mode() -> str:
+    """Return the current AI provider mode."""
+    return _provider
+
+
+def _call_ai(prompt: str) -> str:
+    """Route prompt to the appropriate AI provider."""
+    if _provider == "genai":
+        response = _genai_model.generate_content(prompt)
+        return response.text.strip()
+    elif _provider == "vertex":
+        response = _vertex_model.generate_content(prompt)
+        return response.text.strip()
+    else:
+        raise ValueError("Mock mode — should not call _call_ai directly")
+
 
 def _build_candidate_context(user: User) -> str:
-    ctx = f"Name: {user.name}\n"
-    if user.professional_summary: ctx += f"Summary: {user.professional_summary}\n"
-    if user.skills: ctx += f"Skills: {user.skills}\n"
-    if user.experience: ctx += f"Experience: {user.experience}\n"
-    if user.education: ctx += f"Education: {user.education}\n"
-    if user.projects: ctx += f"Projects: {user.projects}\n"
+    ctx = f"Name: {user.name or 'Not provided'}\n"
+    if user.professional_summary:
+        ctx += f"Summary: {user.professional_summary}\n"
+    if user.skills:
+        ctx += f"Skills: {user.skills}\n"
+    if user.experience:
+        ctx += f"Experience: {user.experience}\n"
+    if user.education:
+        ctx += f"Education: {user.education}\n"
+    if user.projects:
+        ctx += f"Projects: {user.projects}\n"
     return ctx
 
+
 def _build_job_context(job: JobPosting) -> str:
-    return f"Role: {job.role}\nCompany: {job.company}\nDescription: {job.description or 'N/A'}"
+    return (
+        f"Role: {job.role}\n"
+        f"Company: {job.company}\n"
+        f"Location: {job.location or 'Not specified'}\n"
+        f"Employment Type: {job.employment_type or 'Not specified'}\n"
+        f"Description: {job.description or 'No description provided'}"
+    )
+
 
 def generate_cover_letter(db: Session, user: User, application: Application) -> str:
     job = application.job
     candidate_ctx = _build_candidate_context(user)
     job_ctx = _build_job_context(job)
-    
-    # Get past cover letters for context (to match style, avoiding blind copying)
-    past_drafts = db.query(Draft).filter(Draft.user_id == user.id, Draft.type == DraftType.cover_letter).limit(2).all()
+
+    # Get past cover letters for style matching
+    past_drafts = (
+        db.query(Draft)
+        .filter(Draft.user_id == user.id, Draft.type == DraftType.cover_letter)
+        .order_by(Draft.created_at.desc())
+        .limit(2)
+        .all()
+    )
     past_ctx = ""
     if past_drafts:
         past_ctx = "\nHere are examples of my past cover letters for style reference ONLY (do not copy facts from them):\n"
         for d in past_drafts:
-            past_ctx += f"---\n{d.contents}\n"
+            past_ctx += f"---\n{d.contents[:500]}\n"
 
-    prompt = f"""
-    You are an expert career coach writing a highly tailored cover letter.
-    
-    Candidate Profile (Use only these facts, do NOT invent experience, employers, degrees, or certifications):
-    {candidate_ctx}
-    
-    Job Description:
-    {job_ctx}
-    {past_ctx}
-    
-    Instructions:
-    - Write a professional, concise cover letter tailored to the job description.
-    - Highlight how the candidate's specific skills and experience match the role.
-    - Do not include placeholder text like [Company Name], infer it from the context if possible, or omit it.
-    - Keep it under 400 words.
-    - DO NOT hallucinate or invent any qualifications or experience not explicitly listed in the Candidate Profile.
-    """
-    
-    if USE_MOCK_AI:
-        return f"Dear Hiring Manager at {job.company},\n\nI am writing to express my strong interest in the {job.role} position. Based on my background...\n\n[MOCK AI GENERATED CONTENT]"
-    
+    prompt = f"""You are an expert career coach writing a highly tailored cover letter.
+
+Candidate Profile (Use ONLY these facts — do NOT invent experience, employers, degrees, or certifications):
+{candidate_ctx}
+
+Job Description:
+{job_ctx}
+{past_ctx}
+
+Instructions:
+- Write a professional, concise cover letter tailored to the job description.
+- Highlight how the candidate's specific skills and experience match the role.
+- Do not include placeholder text like [Company Name]; use the actual company name from the job description.
+- Keep it under 400 words.
+- Format with a greeting, 2-3 body paragraphs, and a closing.
+- DO NOT hallucinate or invent any qualifications or experience not explicitly listed in the Candidate Profile.
+"""
+
+    if _provider == "mock":
+        name = user.name or "Applicant"
+        return (
+            f"Dear Hiring Manager at {job.company},\n\n"
+            f"I am writing to express my strong interest in the {job.role} position at {job.company}. "
+            f"With my background in {user.skills or 'relevant technologies'}, I am confident I would be a valuable addition to your team.\n\n"
+            f"Your job description aligns closely with my experience, particularly in areas that drive meaningful impact. "
+            f"I am excited about the opportunity to contribute to {job.company}'s mission and would welcome the chance to discuss how my skills can benefit your team.\n\n"
+            f"Thank you for your consideration.\n\nSincerely,\n{name}\n\n"
+            f"[⚠️ This is a MOCK draft. Set USE_MOCK_AI=false and provide GEMINI_API_KEY or GCP_PROJECT for real AI generation.]"
+        )
+
     try:
-        response = model.generate_content(prompt)
-        return response.text.strip()
+        return _call_ai(prompt)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI generation failed: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"AI generation failed: {str(e)}. Check your AI API configuration."
+        )
+
 
 def generate_follow_up(db: Session, user: User, application: Application) -> str:
     job = application.job
-    days_since = (Application.application_date - application.application_date).days # Mock diff
-    # We should calculate real days since application
     from datetime import datetime, timezone
     days_since = (datetime.now(timezone.utc) - application.application_date).days
-    
-    prompt = f"""
-    You are an expert career coach writing a polite follow-up email for a job application.
-    
-    Candidate Name: {user.name}
-    Role: {job.role}
-    Company: {job.company}
-    Days since applied: {days_since}
-    Current Status: {application.current_status}
-    
-    Instructions:
-    - Write a short, professional follow-up email to check on the application status.
-    - Be polite and concise.
-    - Do not invent any additional facts.
-    """
-    
-    if USE_MOCK_AI:
-        return f"Hi Hiring Team at {job.company},\n\nI'm following up on my application for the {job.role} position submitted {days_since} days ago. I remain very interested...\n\n[MOCK AI GENERATED CONTENT]"
-        
+
+    candidate_name = user.name or "Applicant"
+
+    prompt = f"""You are an expert career coach writing a polite follow-up email for a job application.
+
+Candidate Name: {candidate_name}
+Role Applied: {job.role}
+Company: {job.company}
+Days Since Applied: {days_since}
+Current Application Status: {application.current_status}
+
+Instructions:
+- Write a short, professional follow-up email to check on the application status.
+- Be polite, enthusiastic, and concise (under 150 words).
+- Include a subject line at the top formatted as: Subject: [your subject line here]
+- Address it to the Hiring Team or Hiring Manager.
+- Reference the specific role and company.
+- Do not invent any additional facts.
+"""
+
+    if _provider == "mock":
+        return (
+            f"Subject: Following Up on My Application for {job.role} at {job.company}\n\n"
+            f"Dear Hiring Team at {job.company},\n\n"
+            f"I hope this message finds you well. I am writing to follow up on my application for the {job.role} "
+            f"position, which I submitted {days_since} days ago. I remain very enthusiastic about this opportunity "
+            f"and would love to learn if there are any updates on the hiring process.\n\n"
+            f"Please don't hesitate to reach out if you need any additional information from me.\n\n"
+            f"Best regards,\n{candidate_name}\n\n"
+            f"[⚠️ This is a MOCK draft. Set USE_MOCK_AI=false and provide GEMINI_API_KEY or GCP_PROJECT for real AI generation.]"
+        )
+
     try:
-        response = model.generate_content(prompt)
-        return response.text.strip()
+        return _call_ai(prompt)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI generation failed: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"AI generation failed: {str(e)}. Check your AI API configuration."
+        )

@@ -4,22 +4,31 @@ def test_health_check(client):
     assert response.json() == {"status": "ok"}
 
 def test_register_login(client):
-    # Test register
+    # Use a unique email to avoid conflicts with the module-scoped DB
+    email = "test_register_flow@example.com"
     register_response = client.post("/api/auth/register", json={
-        "email": "newuser@example.com",
+        "email": email,
         "password": "newpassword123",
         "name": "New User"
     })
-    assert register_response.status_code == 200
+    assert register_response.status_code == 200, register_response.json()
     assert "id" in register_response.json()
     
     # Test login
     login_response = client.post("/api/auth/login", data={
-        "username": "newuser@example.com",
+        "username": email,
         "password": "newpassword123"
     })
     assert login_response.status_code == 200
     assert "access_token" in login_response.json()
+
+    # Test duplicate email is rejected
+    dup_response = client.post("/api/auth/register", json={
+        "email": email,
+        "password": "anotherpassword",
+        "name": "Duplicate"
+    })
+    assert dup_response.status_code == 400
 
 def test_job_crud(client, user_token_headers):
     # Create job

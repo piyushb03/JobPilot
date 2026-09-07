@@ -3,7 +3,7 @@ export type ApplicationStatus = "Applied" | "Interview" | "Offer" | "Reject" | "
 export interface User {
   id: string;
   email: string;
-  name: string;
+  name?: string;
   phone?: string;
   location?: string;
   professional_summary?: string;
@@ -15,6 +15,7 @@ export interface User {
   github_url?: string;
   portfolio_url?: string;
   created_at: string;
+  updated_at: string;
 }
 
 export interface JobPosting {
@@ -24,8 +25,10 @@ export interface JobPosting {
   location?: string;
   employment_type?: string;
   description?: string;
+  source_url?: string;
   external_id?: string;
   created_at: string;
+  updated_at: string;
 }
 
 export interface Application {
@@ -36,10 +39,12 @@ export interface Application {
   notes?: string;
   job: JobPosting;
   created_at: string;
+  updated_at: string;
 }
 
 export interface ApplicationHistory {
   id: string;
+  application_id: string;
   old_status?: ApplicationStatus;
   new_status: ApplicationStatus;
   changed_at: string;
@@ -48,10 +53,14 @@ export interface ApplicationHistory {
 
 export interface Draft {
   id: string;
+  application_id?: string;
+  job_id?: string;
+  user_id: string;
   type: "cover_letter" | "follow_up_email";
   contents: string;
   status: "draft" | "sent" | "archived";
   created_at: string;
+  updated_at: string;
 }
 
 export interface Nudge {
@@ -66,10 +75,12 @@ export interface Nudge {
 
 export interface ImportJob {
   id: string;
+  user_id: string;
   filename: string;
   status: string;
-  records_processed: int;
-  records_failed: int;
+  records_processed: number;
+  records_failed: number;
   error_summary?: string;
   created_at: string;
+  completed_at?: string;
 }
