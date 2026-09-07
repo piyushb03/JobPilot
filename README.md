@@ -118,7 +118,23 @@ gcloud scheduler jobs create http nudge-job \
 - Environment variables managed securely via Secret Manager in production.
 
 ## 17. Screenshots
-*(Placeholder for UI screenshots)*
+<img width="959" height="503" alt="image" src="https://github.com/user-attachments/assets/c88848b8-1cee-4cc6-85d4-ac00249830b1" />
+
+<img width="959" height="502" alt="image" src="https://github.com/user-attachments/assets/6452a562-cdae-4c27-9c9d-fc03cadc6a35" />
+
+<img width="959" height="503" alt="image" src="https://github.com/user-attachments/assets/25470929-5ea7-4439-b995-bf2362da2254" />
+
+<img width="959" height="504" alt="image" src="https://github.com/user-attachments/assets/3b246d77-6d9c-490f-9b00-cf4acf0eb41c" />
+
+<img width="959" height="505" alt="image" src="https://github.com/user-attachments/assets/0a0aecf4-e61e-4568-9ed8-4631f179a006" />
+
+<img width="959" height="503" alt="image" src="https://github.com/user-attachments/assets/31eb11f9-2a0b-417a-b475-2790413ae864" />
+
+<img width="959" height="502" alt="image" src="https://github.com/user-attachments/assets/c2bcae78-9a68-4225-9aa1-5fbcb655a18a" />
+
+
+
+
 
 ## 18. Future Improvements
 - Native Email integration (Gmail API) to send drafts directly.
