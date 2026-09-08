@@ -6,7 +6,6 @@ import { apiClient } from '../api/client';
 import type { Application, ApplicationHistory, Draft } from '../types';
 import {
   FileText,
-  Mail,
   PenTool,
   RefreshCw,
   ChevronLeft,
@@ -220,7 +219,7 @@ export function ApplicationDetail() {
 
   const [showStatusForm, setShowStatusForm] = useState(false);
   const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState<'cover-letter' | 'follow-up' | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const { data: app, isLoading } = useQuery<Application>({
     queryKey: ['applications', id],
@@ -246,18 +245,18 @@ export function ApplicationDetail() {
     },
   });
 
-  const generateDraft = async (type: 'cover-letter' | 'follow-up') => {
-    setIsGenerating(type);
+  const generateCoverLetter = async () => {
+    setIsGenerating(true);
     try {
-      const res = await apiClient.post(`/api/applications/${id}/ai/generate-${type}`);
+      const res = await apiClient.post(`/api/applications/${id}/ai/generate-cover-letter`);
       queryClient.invalidateQueries({ queryKey: ['applications', id, 'drafts'] });
       setActiveDraftId(res.data.id);
-      toast.success(`${type === 'cover-letter' ? 'Cover letter' : 'Follow-up email'} generated!`);
+      toast.success('Cover letter generated!');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
       toast.error(msg || 'AI generation failed. Check your API configuration.');
     } finally {
-      setIsGenerating(null);
+      setIsGenerating(false);
     }
   };
 
@@ -425,30 +424,16 @@ export function ApplicationDetail() {
             <div className="flex flex-wrap gap-3 mb-4">
               <button
                 id="generate-cover-letter-btn"
-                onClick={() => generateDraft('cover-letter')}
-                disabled={isGenerating !== null}
+                onClick={generateCoverLetter}
+                disabled={isGenerating}
                 className="btn btn-sm bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50"
               >
-                {isGenerating === 'cover-letter' ? (
+                {isGenerating ? (
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                 ) : (
                   <FileText className="w-3.5 h-3.5" />
                 )}
-                {isGenerating === 'cover-letter' ? 'Generating...' : 'Generate Cover Letter'}
-              </button>
-
-              <button
-                id="generate-followup-btn"
-                onClick={() => generateDraft('follow-up')}
-                disabled={isGenerating !== null}
-                className="btn btn-sm bg-slate-800 text-white hover:bg-slate-700 disabled:opacity-50"
-              >
-                {isGenerating === 'follow-up' ? (
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Mail className="w-3.5 h-3.5" />
-                )}
-                {isGenerating === 'follow-up' ? 'Generating...' : 'Draft Follow-up Email'}
+                {isGenerating ? 'Generating...' : 'Generate Cover Letter'}
               </button>
             </div>
 
@@ -485,11 +470,7 @@ export function ApplicationDetail() {
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        {draft.type === 'cover_letter' ? (
-                          <FileText className="w-4 h-4 text-violet-500" />
-                        ) : (
-                          <Mail className="w-4 h-4 text-slate-500" />
-                        )}
+                        <FileText className="w-4 h-4 text-violet-500" />
                         <span className="text-sm font-medium text-slate-800 capitalize">
                           {draft.type.replace('_', ' ')}
                         </span>

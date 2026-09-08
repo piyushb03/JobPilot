@@ -24,25 +24,15 @@ def check_and_create_nudges(db: Session):
         ).first()
         
         if not existing_nudge:
-            # Check if they already sent a follow up draft?
-            # We assume if no "sent" follow_up draft exists, they haven't followed up
-            from ..models import Draft, DraftType, DraftStatus
-            sent_followup = db.query(Draft).filter(
-                Draft.application_id == app.id,
-                Draft.type == DraftType.follow_up_email,
-                Draft.status == DraftStatus.sent
-            ).first()
-            
-            if not sent_followup:
-                new_nudge = Nudge(
-                    application_id=app.id,
-                    user_id=app.user_id,
-                    scheduled_for=datetime.now(timezone.utc),
-                    type="follow_up_email_reminder",
-                    message=f"It's been over 5 days since you applied to {app.job.company}. Consider sending a follow-up email."
-                )
-                db.add(new_nudge)
-                nudges_created.append(new_nudge)
+            new_nudge = Nudge(
+                application_id=app.id,
+                user_id=app.user_id,
+                scheduled_for=datetime.now(timezone.utc),
+                type="stale_application_reminder",
+                message=f"It's been over 5 days since you applied to {app.job.company}. Consider checking in on your application status."
+            )
+            db.add(new_nudge)
+            nudges_created.append(new_nudge)
                 
     db.commit()
     for n in nudges_created:

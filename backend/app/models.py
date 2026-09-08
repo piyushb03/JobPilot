@@ -21,7 +21,6 @@ class ApplicationStatus(str, enum.Enum):
 
 class DraftType(str, enum.Enum):
     cover_letter = "cover_letter"
-    follow_up_email = "follow_up_email"
 
 class DraftStatus(str, enum.Enum):
     draft = "draft"

@@ -64,7 +64,7 @@ def seed_data():
         print("Seeding drafts and nudges...")
         db.add(Draft(user_id=demo_user.id, application_id=apps[0].id, job_id=jobs[0].id, type=DraftType.cover_letter, contents="Dear TechCorp Team, I am excited to apply...", status=DraftStatus.sent))
         
-        db.add(Nudge(user_id=demo_user.id, application_id=apps[1].id, scheduled_for=now, type="follow_up_email_reminder", message=f"It's been 7 days since you applied to {jobs[1].company}. Time to follow up!"))
+        db.add(Nudge(user_id=demo_user.id, application_id=apps[1].id, scheduled_for=now, type="stale_application_reminder", message=f"It's been 7 days since you applied to {jobs[1].company}. Time to check in on your application status!"))
         db.commit()
 
         print("Seeding completed successfully!")

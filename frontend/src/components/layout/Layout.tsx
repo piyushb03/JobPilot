@@ -16,7 +16,7 @@ import { apiClient } from '../../api/client';
 import type { Nudge } from '../../types';
 
 const navItems = [
-  { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+  { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
   { name: 'Jobs', path: '/jobs', icon: Briefcase },
   { name: 'Applications', path: '/applications', icon: FileText },
   { name: 'Nudges', path: '/nudges', icon: Bell },
@@ -54,7 +54,7 @@ function SidebarContent({
         {navItems.map((item) => {
           const isActive =
             location.pathname === item.path ||
-            (item.path !== '/' && location.pathname.startsWith(item.path));
+            (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
           return (
             <Link
               key={item.name}

@@ -1,7 +1,11 @@
 import os
+from dotenv import load_dotenv
 from fastapi import HTTPException
 from ..models import User, JobPosting, Application, Draft, DraftType
 from sqlalchemy.orm import Session
+
+# Load environment variables (.env)
+load_dotenv()
 
 # Configuration
 PROJECT_ID = os.getenv("GCP_PROJECT", "")
@@ -11,27 +15,28 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 # Determine which provider to use
 _provider = "mock"
+_client = None
+_model_name = "gemini-2.5-flash"
 
 if not USE_MOCK_AI:
     if GEMINI_API_KEY:
         # Use google-genai SDK with API key (no GCP auth required)
         try:
-            import google.generativeai as genai  # type: ignore
-            genai.configure(api_key=GEMINI_API_KEY)
-            _genai_model = genai.GenerativeModel("gemini-1.5-flash")
+            from google import genai  # type: ignore
+            _client = genai.Client(api_key=GEMINI_API_KEY)
+            _model_name = "gemini-2.5-flash"
             _provider = "genai"
-            print("AI provider: google-genai SDK (API key)")
+            print("AI provider: google-genai SDK (Gemini API key)")
         except ImportError:
-            print("google-generativeai not installed, falling back to mock AI.")
+            print("google-genai not installed, falling back to mock AI.")
         except Exception as e:
             print(f"Failed to init google-genai: {e}, falling back to mock AI.")
     elif PROJECT_ID:
-        # Use Vertex AI (requires GCP credentials)
+        # Use Vertex AI via google-genai (requires GCP credentials)
         try:
-            import vertexai  # type: ignore
-            from vertexai.generative_models import GenerativeModel  # type: ignore
-            vertexai.init(project=PROJECT_ID, location=LOCATION)
-            _vertex_model = GenerativeModel("gemini-1.5-flash")
+            from google import genai  # type: ignore
+            _client = genai.Client(vertexai=True, project=PROJECT_ID, location=LOCATION)
+            _model_name = "gemini-2.5-flash"
             _provider = "vertex"
             print(f"AI provider: Vertex AI (project={PROJECT_ID})")
         except Exception as e:
@@ -47,12 +52,12 @@ def get_ai_mode() -> str:
 
 def _call_ai(prompt: str) -> str:
     """Route prompt to the appropriate AI provider."""
-    if _provider == "genai":
-        response = _genai_model.generate_content(prompt)
-        return response.text.strip()
-    elif _provider == "vertex":
-        response = _vertex_model.generate_content(prompt)
-        return response.text.strip()
+    if _provider in ("genai", "vertex") and _client is not None:
+        response = _client.models.generate_content(
+            model=_model_name,
+            contents=prompt,
+        )
+        return (response.text or "").strip()
     else:
         raise ValueError("Mock mode — should not call _call_ai directly")
 
@@ -127,8 +132,7 @@ Instructions:
             f"With my background in {user.skills or 'relevant technologies'}, I am confident I would be a valuable addition to your team.\n\n"
             f"Your job description aligns closely with my experience, particularly in areas that drive meaningful impact. "
             f"I am excited about the opportunity to contribute to {job.company}'s mission and would welcome the chance to discuss how my skills can benefit your team.\n\n"
-            f"Thank you for your consideration.\n\nSincerely,\n{name}\n\n"
-            f"[⚠️ This is a MOCK draft. Set USE_MOCK_AI=false and provide GEMINI_API_KEY or GCP_PROJECT for real AI generation.]"
+            f"Thank you for your consideration.\n\nSincerely,\n{name}"
         )
 
     try:
@@ -139,47 +143,3 @@ Instructions:
             detail=f"AI generation failed: {str(e)}. Check your AI API configuration."
         )
 
-
-def generate_follow_up(db: Session, user: User, application: Application) -> str:
-    job = application.job
-    from datetime import datetime, timezone
-    days_since = (datetime.now(timezone.utc) - application.application_date).days
-
-    candidate_name = user.name or "Applicant"
-
-    prompt = f"""You are an expert career coach writing a polite follow-up email for a job application.
-
-Candidate Name: {candidate_name}
-Role Applied: {job.role}
-Company: {job.company}
-Days Since Applied: {days_since}
-Current Application Status: {application.current_status}
-
-Instructions:
-- Write a short, professional follow-up email to check on the application status.
-- Be polite, enthusiastic, and concise (under 150 words).
-- Include a subject line at the top formatted as: Subject: [your subject line here]
-- Address it to the Hiring Team or Hiring Manager.
-- Reference the specific role and company.
-- Do not invent any additional facts.
-"""
-
-    if _provider == "mock":
-        return (
-            f"Subject: Following Up on My Application for {job.role} at {job.company}\n\n"
-            f"Dear Hiring Team at {job.company},\n\n"
-            f"I hope this message finds you well. I am writing to follow up on my application for the {job.role} "
-            f"position, which I submitted {days_since} days ago. I remain very enthusiastic about this opportunity "
-            f"and would love to learn if there are any updates on the hiring process.\n\n"
-            f"Please don't hesitate to reach out if you need any additional information from me.\n\n"
-            f"Best regards,\n{candidate_name}\n\n"
-            f"[⚠️ This is a MOCK draft. Set USE_MOCK_AI=false and provide GEMINI_API_KEY or GCP_PROJECT for real AI generation.]"
-        )
-
-    try:
-        return _call_ai(prompt)
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"AI generation failed: {str(e)}. Check your AI API configuration."
-        )

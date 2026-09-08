@@ -100,3 +100,8 @@ def test_ai_mock_generation(client, user_token_headers):
     draft = r_ai.json()
     assert draft["type"] == "cover_letter"
     assert "Test Co" in draft["contents"]
+
+    # Verify follow-up email endpoint has been completely removed
+    r_followup = client.post(f"/api/applications/{app_id}/ai/generate-follow-up", headers=user_token_headers)
+    assert r_followup.status_code in (404, 405)
+

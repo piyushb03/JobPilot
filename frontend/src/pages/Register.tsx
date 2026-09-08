@@ -45,7 +45,7 @@ export function Register() {
       formData.append('password', password);
       const res = await apiClient.post('/api/auth/login', formData);
       localStorage.setItem('token', res.data.access_token);
-      navigate('/');
+      navigate('/dashboard');
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
       setError(detail || 'Registration failed. Please try again.');

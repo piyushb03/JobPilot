@@ -1,12 +1,12 @@
 # JobPilot — AI Job Application Tracker
 
 ## 1. Project Overview
-JobPilot is a production-ready web application for job seekers to track job applications, generate tailored AI cover letters and follow-up emails, import datasets, and receive scheduled smart nudges for stale applications.
+JobPilot is a production-ready web application for job seekers to track job applications, generate tailored AI cover letters, import datasets, and receive scheduled smart nudges for stale applications.
 
 ## 2. Main Features
 - **Application Tracking**: Pipeline view (Applied → Interview → Offer → Reject).
-- **AI Generation**: Vertex AI Gemini-powered tailored cover letters and follow-ups.
-- **Smart Nudges**: Automatic reminders for applications needing follow-up.
+- **AI Generation**: Vertex AI Gemini-powered tailored cover letters.
+- **Smart Nudges**: Automatic reminders for applications needing attention.
 - **Data Ingestion**: Import bulk job postings via CSV/JSON.
 - **Candidate Profile**: Centralized profile for AI context generation.
 
@@ -31,14 +31,14 @@ The application uses a unified container approach for simple deployment. The Vit
 - `JobPosting`: Company, role, and description.
 - `Application`: Tracks the current state of a job application.
 - `ApplicationStatusHistory`: Immutable log of state transitions.
-- `Draft`: Saved AI-generated cover letters or emails.
+- `Draft`: Saved AI-generated cover letters.
 - `Nudge`: Scheduled reminders.
 - `ImportJob`: Tracks data ingestion status.
 
 ## 7. AI Flow
-1. User requests a cover letter/follow-up.
+1. User requests a cover letter.
 2. `ai_service` constructs a prompt using the Candidate Profile + Job Description + Past Drafts (for style matching).
-3. Sends request to Vertex AI Gemini (`gemini-1.5-flash`).
+3. Sends request to Vertex AI Gemini (`gemini-2.5-flash`).
 4. Result is saved as a Draft for user review and editing.
 
 ## 8. Import Flow
@@ -49,7 +49,7 @@ The application uses a unified container approach for simple deployment. The Vit
 
 ## 9. Scheduled Nudge Flow
 1. Cloud Scheduler pings `POST /api/internal/scheduled-nudges` daily.
-2. Backend checks for applications in `Applied` state for >5 days with no sent follow-up draft.
+2. Backend checks for applications in `Applied` state for >5 days without activity.
 3. Generates a `Nudge` record.
 4. Dashboard alerts the user to take action.
 
@@ -137,6 +137,5 @@ gcloud scheduler jobs create http nudge-job \
 
 
 ## 18. Future Improvements
-- Native Email integration (Gmail API) to send drafts directly.
 - Resume parsing (PDF to Candidate Profile).
 - OAuth2 (Google Sign-In) integration.

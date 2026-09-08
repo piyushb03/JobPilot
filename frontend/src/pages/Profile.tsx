@@ -127,7 +127,7 @@ export function Profile() {
             Candidate Profile
           </h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            This information is used by the AI to generate tailored cover letters and follow-up emails
+            This information is used by the AI to generate tailored AI-powered cover letters
           </p>
         </div>
 

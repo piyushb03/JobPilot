@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { Layout } from './components/layout/Layout';
 
+import { LandingPage } from './pages/LandingPage';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Dashboard } from './pages/Dashboard';
@@ -30,30 +31,45 @@ const PrivateRoute = ({ children }: { children: React.ReactElement }) => {
   return children;
 };
 
+const RootRoute = () => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <LandingPage />;
+};
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
         <Routes>
+          {/* Public Root Route */}
+          <Route path="/" element={<RootRoute />} />
+
+          {/* Authentication Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
+          {/* Protected Application Experience */}
           <Route
-            path="/"
             element={
               <PrivateRoute>
                 <Layout />
               </PrivateRoute>
             }
           >
-            <Route index element={<Dashboard />} />
-            <Route path="jobs" element={<Jobs />} />
-            <Route path="applications" element={<Applications />} />
-            <Route path="applications/:id" element={<ApplicationDetail />} />
-            <Route path="nudges" element={<Nudges />} />
-            <Route path="imports" element={<Imports />} />
-            <Route path="profile" element={<Profile />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/jobs" element={<Jobs />} />
+            <Route path="/applications" element={<Applications />} />
+            <Route path="/applications/:id" element={<ApplicationDetail />} />
+            <Route path="/nudges" element={<Nudges />} />
+            <Route path="/imports" element={<Imports />} />
+            <Route path="/profile" element={<Profile />} />
           </Route>
+
+          {/* Fallback route */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
 

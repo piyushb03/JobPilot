@@ -56,7 +56,7 @@ export interface Draft {
   application_id?: string;
   job_id?: string;
   user_id: string;
-  type: "cover_letter" | "follow_up_email";
+  type: "cover_letter";
   contents: string;
   status: "draft" | "sent" | "archived";
   created_at: string;

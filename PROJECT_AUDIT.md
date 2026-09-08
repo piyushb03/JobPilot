@@ -4,9 +4,9 @@
 
 JobPilot is an AI-powered job application tracker. Users can:
 1. Track job applications (Applied → Interview → Offer → Reject → Withdrawn)
-2. Generate AI cover letters and follow-up emails (Vertex AI / Gemini)
+2. Generate AI cover letters (Vertex AI / Gemini)
 3. Import bulk job postings via CSV/JSON
-4. Receive smart nudges for stale applications needing follow-up
+4. Receive smart nudges for stale applications needing attention
 5. Maintain a centralized candidate profile used for AI context
 
 ## B. Feature Status

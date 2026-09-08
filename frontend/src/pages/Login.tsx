@@ -22,7 +22,7 @@ export function Login() {
 
       const res = await apiClient.post('/api/auth/login', formData);
       localStorage.setItem('token', res.data.access_token);
-      navigate('/');
+      navigate('/dashboard');
     } catch {
       setError('Invalid email or password. Please try again.');
     } finally {
