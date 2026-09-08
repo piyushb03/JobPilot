@@ -13,8 +13,6 @@
 [![Google Gemini](https://img.shields.io/badge/Google_Gemini-2.5_Flash-8E75C2.svg?style=flat&logo=googlegemini&logoColor=white)](https://ai.google.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-4169E1.svg?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 
-[Live Demo](#-live-demo--walkthrough) • [Screenshots](#-screenshots--visual-tour) • [Key Features](#-key-features) • [Architecture](#-architecture) • [Quick Start](#-quick-start) • [API Docs](#-api-endpoints)
-
 ---
 
 </div>
@@ -30,10 +28,7 @@
 
 <div align="center">
 
-[![Watch JobPilot Demo](https://via.placeholder.com/1200x580/0f172a/38bdf8?text=%E2%96%B6+Click+Here+to+Watch+the+JobPilot+Product+Demo+Video)](https://your-demo-video-link-here)
-
-*🎥 Video Demo Link: **[Insert Your Demo Video Link Here (e.g. YouTube / Loom / Google Drive)]***  
-*🌐 Live Deployed Application: **[https://jobpilot.yourdomain.com](https://your-deployed-app-url-here)***
+🎥 Video Demo Link: https://drive.google.com/file/d/1kNoIclrSefDG-dUSBHHA33eh0hXGzIlv/view?usp=sharing
 
 </div>
 
@@ -51,7 +46,8 @@
 
 <!-- PLACEHOLDER: Landing Page Screenshot -->
 <p align="center">
-  <img width="960" alt="JobPilot Public Landing Page" src="https://via.placeholder.com/960x500/0f172a/38bdf8?text=JobPilot+Public+Landing+Page+-+Add+Screenshot+Here" />
+  <img width="1918" height="1015" alt="image" src="https://github.com/user-attachments/assets/36b4d141-75a5-4861-a693-6cc16f6f526b" />
+
 </p>
 
 ---
@@ -60,7 +56,8 @@
 *Real-time metrics, quick stats, smart follow-up alerts, and application pipeline tracking.*
 
 <p align="center">
-  <img width="959" height="503" alt="JobPilot Dashboard & Pipeline" src="https://github.com/user-attachments/assets/c88848b8-1cee-4cc6-85d4-ac00249830b1" />
+  <img width="954" height="472" alt="image" src="https://github.com/user-attachments/assets/85b88c27-01e8-4c3d-8789-91234cccf589" />
+
 </p>
 
 <p align="center">
@@ -73,7 +70,7 @@
 *Comprehensive application view with status progression, notes, interviews, and saved drafts.*
 
 <p align="center">
-  <img width="959" height="503" alt="Application Details & Progression" src="https://github.com/user-attachments/assets/25470929-5ea7-4439-b995-bf2362da2254" />
+  <img width="959" height="504" alt="AI Tailored Cover Letter Generator" src="https://github.com/user-attachments/assets/3b246d77-6d9c-490f-9b00-cf4acf0eb41c" />
 </p>
 
 ---
@@ -82,7 +79,8 @@
 *Context-aware cover letter generator using Google Gemini 2.5 Flash, matching candidate profile and company requirements.*
 
 <p align="center">
-  <img width="959" height="504" alt="AI Tailored Cover Letter Generator" src="https://github.com/user-attachments/assets/3b246d77-6d9c-490f-9b00-cf4acf0eb41c" />
+  <img width="959" height="472" alt="image" src="https://github.com/user-attachments/assets/954624ff-c924-4294-b7db-06c402d2ec53" />
+
 </p>
 
 ---
